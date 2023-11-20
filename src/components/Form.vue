@@ -18,9 +18,13 @@
       ElOption,
     },
     setup() {
-      const formData = reactive({ table: '', field: '' });
+      const formData = reactive({ table: '', field: '', timestampUnit: ref(1) });
       const tableMetaList = ref([]);
       const fieldMetaList = ref([]);
+      const timestampUnitList = [
+        { 'id': 1, 'name': '毫秒'}, 
+        { 'id': 2, 'name': '秒' }
+      ];
 
       onMounted(async () => {
         const [tableList, selection] = await Promise.all([bitable.base.getTableMetaList(), bitable.base.getSelection()]);
@@ -36,7 +40,7 @@
       });
 
       const changeTimeStamp = async () => {
-        if (formData.table && formData.field) {
+        if (formData.table && formData.field && formData.timestampUnit) {
           const table = await bitable.base.getTableById(formData.table);
           const recordIdList = await table.getRecordIdList();
           const field = await table.getFieldById(formData.field);
@@ -48,7 +52,11 @@
           for (var i = 0; i < recordIdList.length; i++) {
             var timestamp = await table.getCellValue(formData.field, recordIdList[i]);
             timestamp = timestamp[0];
-            const data = new Date(Number(timestamp.text)).toLocaleString();
+            timestamp = Number(timestamp.text);
+            if (formData.timestampUnit == timestampUnitList[1].id) {
+              timestamp = timestamp * 1000;
+            }
+            const data = new Date(timestamp).toLocaleString();
             const res = table.setCellValue(dateField, recordIdList[i], [
               {
                 type: 'text',
@@ -63,6 +71,7 @@
         formData,
         tableMetaList,
         fieldMetaList,
+        timestampUnitList,
         changeTimeStamp,
       };
     },
@@ -85,6 +94,16 @@
         <el-select v-model="formData.field" placeholder="请选择时间戳字段" style="width: 100%">
           <el-option
             v-for="meta in fieldMetaList"
+            :key="meta.id"
+            :label="meta.name"
+            :value="meta.id"
+          />
+        </el-select>
+    </el-form-item>
+    <el-form-item label="选择时间戳单位" size="large">
+        <el-select v-model="formData.timestampUnit" placeholder="请选择时间戳单位" style="width: 100%">
+          <el-option
+            v-for="meta in timestampUnitList"
             :key="meta.id"
             :label="meta.name"
             :value="meta.id"
